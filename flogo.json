@@ -1,0 +1,92 @@
+{
+  "name": "example",
+  "type": "flogo:app",
+  "version": "1.0.0",
+  "description": "This is a simple proxy.",
+  "appModel": "",
+  "imports": [
+    "github.com/project-flogo/graphql/trigger/graphql",
+    "github.com/project-flogo/microgateway",
+    "github.com/project-flogo/contrib/activity/rest"
+  ],
+  "triggers": [
+    {
+      "id": "graph_ql_trigger",
+      "ref": "github.com/project-flogo/graphql/trigger/graphql",
+      "settings": {
+        "graphqlSchema": "type User { id: Int! name: String email: String address: Address phone: String } type Address { street: String suite: String city: String zipcode: String } type Query { GetUser(userId: Int!): User } schema { query: Query }",
+        "path": "/graphql",
+        "port": 7879
+      },
+      "handlers": [
+        {
+          "settings": {
+            "operation": "Query",
+            "resolverFor": "GetUser"
+          },
+          "actions": [
+            {
+              "id": "microgateway:user"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "microgateway:user",
+      "data": {
+        "name": "user",
+        "steps": [
+          {
+            "service": "Users",
+            "input": {
+              "pathParams.userId": "=$.payload.arguments.userId"
+            }
+          }
+        ],
+        "responses": [
+          {
+            "error": false,
+            "output": {
+              "code": 200,
+              "data": {
+                "body.id": "=$.Users.outputs.data.id",
+                "body.name": "=$.Users.outputs.data.name",
+                "body.username": "=$.Users.outputs.data.username",
+                "body.email": "=$.Users.outputs.data.email",
+                "body.address": "=$.Users.outputs.data.address",
+                "body.phone": "=$.Users.outputs.data.phone",
+                "body.website": "=$.Users.outputs.data.website"
+              }
+            }
+          }
+        ],
+        "services": [
+          {
+            "name": "Users",
+            "description": "Get user by ID from the userstore",
+            "ref": "github.com/project-flogo/contrib/activity/rest",
+            "settings": {
+              "uri": "https://jsonplaceholder.typicode.com/users/:userId",
+              "method": "GET",
+              "headers": {
+                "Accept": "application/json"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "ref": "github.com/project-flogo/microgateway",
+      "settings": {
+        "uri": "microgateway:user"
+      },
+      "id": "microgateway:user"
+    }
+  ]
+}
